@@ -49,5 +49,42 @@ class Blockchain(object):
     
     def proof_of_work(self, last_proof):
         proof = 0
-         while self.valid_proof(last_proof, proof) is False:
-             
+
+        while self.valid_proof(last_proof, proof) is False:
+            proof += 1
+        
+        return proof
+
+    
+    @staticmethod
+    def valid_proof(last_proof, proof):
+        guess = f'{last_proof}{proof}'.encode()
+        guess_hash = hashlib.sha256(guess).hexdigest()
+        print(guess_hash)
+
+        return guess_hash[:1] == '0'
+
+    
+bc = Blockchain()
+
+last_proof = bc.last_block['proof']
+previous_hash = bc.hash(bc.last_block)
+
+new_transaction = bc.new_transaction('user1', 'user2', 20)
+
+pow = bc.proof_of_work(last_proof)
+new_block = bc.new_block(pow, previous_hash)
+
+
+
+last_proof = bc.last_block['proof']
+previous_hash = bc.hash(bc.last_block)
+
+new_transaction = bc.new_transaction('user3', 'user4', 40)
+new_transaction = bc.new_transaction('user5', 'user6', 50)
+
+pow = bc.proof_of_work(last_proof)
+new_block = bc.new_block(pow, previous_hash)
+
+
+print(bc.chain)
