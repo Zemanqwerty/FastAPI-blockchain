@@ -1,6 +1,12 @@
 from time import time
 import json
 import hashlib
+from fastapi import FastAPI
+from pydantic import BaseModel
+from uuid import uuid4
+
+
+app = FastAPI()
 
 
 class Blockchain(object):
@@ -62,29 +68,45 @@ class Blockchain(object):
         guess_hash = hashlib.sha256(guess).hexdigest()
         print(guess_hash)
 
-        return guess_hash[:1] == '0'
+        return guess_hash[:4] == '0000'
 
-    
+
 bc = Blockchain()
 
-last_proof = bc.last_block['proof']
-previous_hash = bc.hash(bc.last_block)
+class Transaction(BaseModel):
+    sender : str
+    recipient : str
+    amount : int
 
-new_transaction = bc.new_transaction('user1', 'user2', 20)
+node_identifier = str(uuid4()).replace('-', '')
 
-pow = bc.proof_of_work(last_proof)
-new_block = bc.new_block(pow, previous_hash)
-
-
-
-last_proof = bc.last_block['proof']
-previous_hash = bc.hash(bc.last_block)
-
-new_transaction = bc.new_transaction('user3', 'user4', 40)
-new_transaction = bc.new_transaction('user5', 'user6', 50)
-
-pow = bc.proof_of_work(last_proof)
-new_block = bc.new_block(pow, previous_hash)
+@app.post('/transactions/new')
+async def new_tansactions(transaction: Transaction):
+    
+    if bc.new_transaction(transaction.sender, transaction.recipient, transaction.amount):
+        return {'status': 'success'}
+    else:
+        return {'status': 'failed'}
 
 
-print(bc.chain)
+@app.get('/mine')
+async def mine():
+    last_proof = bc.last_block['proof']
+    previous_hash = bc.hash(bc.last_block)
+    proof = bc.proof_of_work(last_proof)
+    new_block = bc.new_block(proof, previous_hash)
+
+    if new_block:
+        if bc.new_transaction('0', node_identifier, 1):
+            return {'status': 'success', 'function': 'mine'}
+        else:
+            return {'status': 'failed', 'function': 'transaction'}
+    else:
+        return {'status': 'failed', 'function': 'mine'}
+
+
+@app.get('/chain/get')
+async def get_chain_list():
+    return bc.chain
+
+# print(bc.cur_transactions)
